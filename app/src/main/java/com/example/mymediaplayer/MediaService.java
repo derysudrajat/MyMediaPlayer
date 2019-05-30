@@ -1,6 +1,11 @@
 package com.example.mymediaplayer;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.media.AudioManager;
@@ -9,6 +14,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import java.io.IOException;
@@ -62,6 +68,7 @@ public class MediaService extends Service implements MediaPlayerCallback {
         } else {
             if (mMediaPlayer.isPlaying()) {
                 mMediaPlayer.pause();
+                showNotif();
             } else {
                 mMediaPlayer.start();
             }
@@ -73,6 +80,7 @@ public class MediaService extends Service implements MediaPlayerCallback {
         if (mMediaPlayer.isPlaying() || isReady) {
             mMediaPlayer.stop();
             isReady = false;
+            showNotif();
         }
     }
 
@@ -91,6 +99,7 @@ public class MediaService extends Service implements MediaPlayerCallback {
             public void onPrepared(MediaPlayer mp) {
                 isReady = true;
                 mMediaPlayer.start();
+                showNotif();
             }
         });
         mMediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
@@ -122,6 +131,37 @@ public class MediaService extends Service implements MediaPlayerCallback {
                 default:
                     super.handleMessage(msg);
             }
+        }
+    }
+
+    void showNotif(){
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+        String CHANNEL_DEFAULT_IMPORTANCE = "Channel Test";
+        int ONGOING_NOTIFICATION_ID = 1;
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_DEFAULT_IMPORTANCE)
+                .setContentTitle("TEST 1")
+                .setContentText("TEST 2")
+                .setSmallIcon(R.drawable.ic_launcher_background)
+                .setContentIntent(pendingIntent)
+                .setTicker("TEST 3")
+                .build();
+        createChannel(CHANNEL_DEFAULT_IMPORTANCE);
+        startForeground(ONGOING_NOTIFICATION_ID, notification);
+    }
+
+    void  createChannel (String CHANNEL_ID){
+        NotificationManager notificationManager =
+                (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Battery",
+                    NotificationManager.IMPORTANCE_DEFAULT);
+            channel.setShowBadge(false);
+            channel.setSound(null, null);
+            notificationManager.createNotificationChannel(channel);
         }
     }
 }
